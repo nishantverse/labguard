@@ -7,6 +7,7 @@ import ErrorState from '../components/ErrorState';
 import DataTable from '../components/DataTable';
 import RelativeTime from '../components/RelativeTime';
 import SeverityBadge from '../components/SeverityBadge';
+import { formatExactTime, formatDateTime } from '../utils/date';
 import { 
   AlertTriangle, 
   CheckCircle2, 
@@ -97,9 +98,14 @@ export default function Alerts() {
     { 
       header: 'Created', 
       accessor: (row) => (
-        <span className="font-mono text-xs text-gray-300">
-          <RelativeTime timestamp={row.created_at} />
-        </span>
+        <div className="font-mono">
+          <div className="text-xs text-gray-200 font-medium">
+            <RelativeTime timestamp={row.created_at} />
+          </div>
+          <div className="text-[10px] text-gray-500">
+            {formatExactTime(row.created_at)}
+          </div>
+        </div>
       ) 
     },
     { 
@@ -267,9 +273,9 @@ export default function Alerts() {
                     <Clock size={12} /> Triggered
                   </span>
                   <p className="font-mono text-xs text-gray-200">
-                    {selectedAlert.created_at || '—'}
+                    {formatDateTime(selectedAlert.created_at)}
                   </p>
-                  <p className="text-[11px] text-gray-500 mt-0.5">
+                  <p className="text-[11px] text-gray-400 mt-0.5 font-mono">
                     <RelativeTime timestamp={selectedAlert.created_at} />
                   </p>
                 </div>

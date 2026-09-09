@@ -8,6 +8,7 @@ import ErrorState from '../components/ErrorState';
 import LoadingState from '../components/LoadingState';
 import RelativeTime from '../components/RelativeTime';
 import Squares from '../components/Squares';
+import { formatExactTime } from '../utils/date';
 import { 
   PieChart, 
   Pie, 
@@ -374,8 +375,15 @@ export default function Dashboard() {
                       </div>
                     </div>
                   </div>
-                  <div className="text-xs text-gray-400 whitespace-nowrap ml-4 font-mono">
-                    <RelativeTime timestamp={event.timestamp} />
+                  <div className="text-right whitespace-nowrap ml-4 shrink-0 font-mono">
+                    <div className="text-xs text-gray-300 font-medium">
+                      <RelativeTime timestamp={event.timestamp} />
+                    </div>
+                    {event.timestamp && (
+                      <div className="text-[10px] text-gray-500">
+                        {formatExactTime(event.timestamp)}
+                      </div>
+                    )}
                   </div>
                 </div>
               );

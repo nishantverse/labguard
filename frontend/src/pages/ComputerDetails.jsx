@@ -11,6 +11,7 @@ import ErrorState from '../components/ErrorState';
 import LoadingState from '../components/LoadingState';
 import DataTable from '../components/DataTable';
 import RelativeTime from '../components/RelativeTime';
+import { formatExactTime, formatDateTime } from '../utils/date';
 import { 
   ArrowLeft, 
   Monitor, 
@@ -65,9 +66,14 @@ export default function ComputerDetails() {
     { 
       header: 'Time', 
       accessor: (row) => (
-        <span className="font-mono text-xs text-gray-300">
-          <RelativeTime timestamp={row.timestamp} />
-        </span>
+        <div className="font-mono">
+          <div className="text-xs text-gray-200 font-medium">
+            <RelativeTime timestamp={row.timestamp} />
+          </div>
+          <div className="text-[10px] text-gray-500">
+            {formatExactTime(row.timestamp)}
+          </div>
+        </div>
       ) 
     },
     { 
@@ -104,9 +110,14 @@ export default function ComputerDetails() {
     { 
       header: 'Time', 
       accessor: (row) => (
-        <span className="font-mono text-xs text-gray-300">
-          <RelativeTime timestamp={row.created_at} />
-        </span>
+        <div className="font-mono">
+          <div className="text-xs text-gray-200 font-medium">
+            <RelativeTime timestamp={row.created_at} />
+          </div>
+          <div className="text-[10px] text-gray-500">
+            {formatExactTime(row.created_at)}
+          </div>
+        </div>
       ) 
     },
     {
@@ -180,7 +191,7 @@ export default function ComputerDetails() {
             <p className="font-mono text-sm font-semibold text-gray-200">
               <RelativeTime timestamp={computer.last_seen} />
             </p>
-            <p className="text-[10px] text-gray-500 font-mono mt-0.5">{computer.last_seen || 'Never'}</p>
+            <p className="text-[10px] text-gray-500 font-mono mt-0.5">{formatDateTime(computer.last_seen) || 'Never'}</p>
           </div>
 
           <div className="bg-gray-800/40 p-3.5 rounded-xl border border-gray-800">
@@ -190,7 +201,7 @@ export default function ComputerDetails() {
             <p className="font-mono text-sm font-semibold text-gray-200">
               <RelativeTime timestamp={computer.registered_at} />
             </p>
-            <p className="text-[10px] text-gray-500 font-mono mt-0.5">{computer.registered_at || '—'}</p>
+            <p className="text-[10px] text-gray-500 font-mono mt-0.5">{formatDateTime(computer.registered_at) || '—'}</p>
           </div>
         </div>
       </div>

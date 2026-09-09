@@ -1,35 +1,27 @@
 import React, { useState, useEffect } from 'react';
+import { formatRelativeTime, formatDateTime } from '../utils/date';
 
-function getRelativeTime(timestamp) {
-  if (!timestamp) return '—';
-  const now = new Date();
-  const past = new Date(timestamp + (timestamp.endsWith('Z') ? '' : 'Z'));
-  const diffInSeconds = Math.floor((now - past) / 1000);
-  
-  if (isNaN(diffInSeconds)) return '—';
-  
-  if (diffInSeconds < 30) return 'just now';
-  if (diffInSeconds < 60) return `${diffInSeconds}s ago`;
-  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-  return `${Math.floor(diffInSeconds / 86400)}d ago`;
-}
-
-export default function RelativeTime({ timestamp, className = '' }) {
-  const [relativeText, setRelativeText] = useState(getRelativeTime(timestamp));
+export default function RelativeTime({ timestamp, className = '', showExactOnHover = true }) {
+  const [relativeText, setRelativeText] = useState(() => formatRelativeTime(timestamp));
 
   useEffect(() => {
-    setRelativeText(getRelativeTime(timestamp));
+    setRelativeText(formatRelativeTime(timestamp));
     
+    // Refresh relative text every 10 seconds
     const interval = setInterval(() => {
-      setRelativeText(getRelativeTime(timestamp));
-    }, 15000);
+      setRelativeText(formatRelativeTime(timestamp));
+    }, 10000);
     
     return () => clearInterval(interval);
   }, [timestamp]);
 
+  const fullDateTime = showExactOnHover ? formatDateTime(timestamp) : (timestamp || 'Unknown');
+
   return (
-    <span className={className} title={timestamp || 'Unknown'}>
+    <span 
+      className={className} 
+      title={fullDateTime}
+    >
       {relativeText}
     </span>
   );

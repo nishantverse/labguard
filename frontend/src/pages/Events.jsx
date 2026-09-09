@@ -6,6 +6,7 @@ import usePolling from '../hooks/usePolling';
 import ErrorState from '../components/ErrorState';
 import DataTable from '../components/DataTable';
 import RelativeTime from '../components/RelativeTime';
+import { formatExactTime, formatDateTime } from '../utils/date';
 import { 
   Activity, 
   Search, 
@@ -111,9 +112,14 @@ export default function Events() {
     { 
       header: 'Time', 
       accessor: (row) => (
-        <span className="font-mono text-xs text-gray-300">
-          <RelativeTime timestamp={row.timestamp} />
-        </span>
+        <div className="font-mono">
+          <div className="text-xs text-gray-200 font-medium">
+            <RelativeTime timestamp={row.timestamp} />
+          </div>
+          <div className="text-[10px] text-gray-500">
+            {formatExactTime(row.timestamp)}
+          </div>
+        </div>
       ) 
     },
     { 
@@ -307,9 +313,9 @@ export default function Events() {
                     <Clock size={12} /> Timestamp
                   </span>
                   <p className="font-medium text-gray-200 font-mono text-xs">
-                    {selectedEvent.timestamp || '—'}
+                    {formatDateTime(selectedEvent.timestamp)}
                   </p>
-                  <p className="text-[11px] text-gray-500 mt-0.5">
+                  <p className="text-[11px] text-gray-400 mt-0.5 font-mono">
                     <RelativeTime timestamp={selectedEvent.timestamp} />
                   </p>
                 </div>
