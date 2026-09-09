@@ -1,0 +1,244 @@
+import React, { useMemo, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { fetchComputer } from '../api/computers';
+import { fetchEvents } from '../api/events';
+import { fetchAlerts, acknowledgeAlert } from '../api/alerts';
+import usePolling from '../hooks/usePolling';
+import StatusBadge from '../components/StatusBadge';
+import SeverityBadge from '../components/SeverityBadge';
+import ErrorState from '../components/ErrorState';
+import LoadingState from '../components/LoadingState';
+import DataTable from '../components/DataTable';
+import RelativeTime from '../components/RelativeTime';
+import { 
+  ArrowLeft, 
+  Monitor, 
+  Activity, 
+  AlertTriangle, 
+  Calendar, 
+  Clock, 
+  Globe, 
+  Shield, 
+  Check,
+  Server
+} from 'lucide-react';
+
+export default function ComputerDetails() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+
+  // Fetch computer info
+  const fetchCompFn = useCallback(() => fetchComputer(id), [id]);
+  const { data: computer, loading: compLoading, error: compError, refetch: refetchComp } = usePolling(fetchCompFn, { interval: 10000 });
+
+  // Fetch events for this computer (supported by GET /api/events?computer_id=)
+  const fetchEventsFn = useCallback(() => fetchEvents({ computer_id: id, limit: 50 }), [id]);
+  const { data: events, loading: eventsLoading, refetch: refetchEvents } = usePolling(fetchEventsFn, { interval: 10000 });
+
+  // Fetch alerts (filter client-side since backend /api/alerts filters by severity/acknowledged)
+  const fetchAlertsFn = useCallback(() => fetchAlerts({ limit: 200 }), []);
+  const { data: allAlerts, loading: alertsLoading, refetch: refetchAlerts } = usePolling(fetchAlertsFn, { interval: 10000 });
+
+  // Filter alerts for this computer
+  const systemAlerts = useMemo(() => {
+    if (!Array.isArray(allAlerts)) return [];
+    return allAlerts.filter(a => String(a.computer_id) === String(id));
+  }, [allAlerts, id]);
+
+  const handleAcknowledge = async (alertId) => {
+    try {
+      await acknowledgeAlert(alertId);
+      toast.success(`Alert #${alertId} acknowledged`);
+      refetchAlerts();
+    } catch (err) {
+      toast.error(err.message || 'Failed to acknowledge alert');
+    }
+  };
+
+  const formatEventType = (type) => {
+    if (!type) return 'Unknown';
+    return type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  };
+
+  const eventColumns = [
+    { 
+      header: 'Time', 
+      accessor: (row) => (
+        <span className="font-mono text-xs text-gray-300">
+          <RelativeTime timestamp={row.timestamp} />
+        </span>
+      ) 
+    },
+    { 
+      header: 'Event Type', 
+      accessor: (row) => (
+        <span className="text-xs font-medium text-gray-200">
+          {formatEventType(row.event_type)}
+        </span>
+      ) 
+    },
+    { 
+      header: 'Description', 
+      accessor: (row) => (
+        <span className="text-xs text-gray-300">
+          {row.description || '—'}
+        </span>
+      ) 
+    }
+  ];
+
+  const alertColumns = [
+    { 
+      header: 'Severity', 
+      accessor: (row) => <SeverityBadge severity={row.severity} /> 
+    },
+    { 
+      header: 'Message', 
+      accessor: (row) => (
+        <span className={`text-xs ${!row.acknowledged ? 'font-semibold text-gray-100' : 'text-gray-400'}`}>
+          {row.message}
+        </span>
+      ) 
+    },
+    { 
+      header: 'Time', 
+      accessor: (row) => (
+        <span className="font-mono text-xs text-gray-300">
+          <RelativeTime timestamp={row.created_at} />
+        </span>
+      ) 
+    },
+    {
+      header: 'Action',
+      accessor: (row) => !row.acknowledged ? (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleAcknowledge(row.id);
+          }}
+          className="bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-medium px-2.5 py-1 rounded transition-colors"
+        >
+          Acknowledge
+        </button>
+      ) : (
+        <span className="text-xs text-gray-500 italic">Resolved</span>
+      )
+    }
+  ];
+
+  if (compLoading && !computer) return <LoadingState message="Loading laboratory system telemetry..." />;
+  if (compError && !computer) return <ErrorState message={compError.message} onRetry={refetchComp} />;
+  if (!computer) return <ErrorState message="Computer not found" onRetry={() => navigate('/computers')} />;
+
+  return (
+    <div className="space-y-6">
+      {/* Back button */}
+      <button 
+        onClick={() => navigate('/computers')} 
+        className="flex items-center gap-2 text-xs font-medium text-gray-400 hover:text-gray-200 transition-colors bg-gray-800/60 px-3 py-1.5 rounded-lg border border-gray-700/60 w-fit"
+      >
+        <ArrowLeft size={14} /> Back to Computers
+      </button>
+
+      {/* Main Computer Card */}
+      <div className="bg-gray-900/80 rounded-2xl border border-gray-800 p-6 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-6 border-b border-gray-800">
+          <div className="flex items-center gap-4">
+            <div className="p-3.5 bg-gray-800/80 rounded-xl border border-gray-700/60 text-blue-400">
+              <Server size={32} />
+            </div>
+            <div>
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl font-bold text-gray-100">{computer.hostname}</h1>
+                <StatusBadge online={computer.online} />
+              </div>
+              <p className="text-xs font-mono text-gray-400 mt-1 flex items-center gap-2">
+                <Globe size={12} className="text-gray-500" />
+                IP: {computer.ip_address || 'Unassigned'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Telemetry Metrics Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-gray-800/40 p-3.5 rounded-xl border border-gray-800">
+            <span className="text-[10px] uppercase font-mono text-gray-500 block mb-1">System ID</span>
+            <p className="font-mono text-sm font-semibold text-gray-200">#{computer.id}</p>
+          </div>
+
+          <div className="bg-gray-800/40 p-3.5 rounded-xl border border-gray-800">
+            <span className="text-[10px] uppercase font-mono text-gray-500 block mb-1">Network IP</span>
+            <p className="font-mono text-sm font-semibold text-gray-200">{computer.ip_address || '—'}</p>
+          </div>
+
+          <div className="bg-gray-800/40 p-3.5 rounded-xl border border-gray-800">
+            <span className="text-[10px] uppercase font-mono text-gray-500 block mb-1 flex items-center gap-1">
+              <Clock size={11} /> Last Seen
+            </span>
+            <p className="font-mono text-sm font-semibold text-gray-200">
+              <RelativeTime timestamp={computer.last_seen} />
+            </p>
+            <p className="text-[10px] text-gray-500 font-mono mt-0.5">{computer.last_seen || 'Never'}</p>
+          </div>
+
+          <div className="bg-gray-800/40 p-3.5 rounded-xl border border-gray-800">
+            <span className="text-[10px] uppercase font-mono text-gray-500 block mb-1 flex items-center gap-1">
+              <Calendar size={11} /> Registered
+            </span>
+            <p className="font-mono text-sm font-semibold text-gray-200">
+              <RelativeTime timestamp={computer.registered_at} />
+            </p>
+            <p className="text-[10px] text-gray-500 font-mono mt-0.5">{computer.registered_at || '—'}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Events & Alerts Two-column Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Events */}
+        <div className="bg-gray-900/80 rounded-xl border border-gray-800 overflow-hidden shadow-sm flex flex-col">
+          <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-200 flex items-center gap-2">
+              <Activity size={16} className="text-blue-400" />
+              Recent Security Events
+            </h3>
+            <span className="text-xs text-gray-500 font-mono">
+              {Array.isArray(events) ? `${events.length} events` : ''}
+            </span>
+          </div>
+          <div className="flex-1">
+            <DataTable 
+              columns={eventColumns} 
+              data={Array.isArray(events) ? events : []} 
+              emptyMessage={eventsLoading && !events ? "Loading events..." : "No recent events recorded for this computer."} 
+              emptyIcon={Activity} 
+            />
+          </div>
+        </div>
+
+        {/* Alerts for this computer */}
+        <div className="bg-gray-900/80 rounded-xl border border-gray-800 overflow-hidden shadow-sm flex flex-col">
+          <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-200 flex items-center gap-2">
+              <AlertTriangle size={16} className="text-amber-400" />
+              System Alerts
+            </h3>
+            <span className="text-xs text-gray-500 font-mono">
+              {systemAlerts.length} {systemAlerts.length === 1 ? 'alert' : 'alerts'}
+            </span>
+          </div>
+          <div className="flex-1">
+            <DataTable 
+              columns={alertColumns} 
+              data={systemAlerts} 
+              emptyMessage={alertsLoading && !allAlerts ? "Loading alerts..." : "No active or recorded alerts for this computer."} 
+              emptyIcon={AlertTriangle} 
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -11,6 +11,7 @@ Or with a custom host/port:
 import logging
 import sys
 import os
+from flask_cors import CORS 
 # Make sure the backend/ directory is always on sys.path so that
 # 'from config import ...' and 'from database.database import ...'
 # work regardless of how the module is invoked.
@@ -38,6 +39,7 @@ logger = logging.getLogger(__name__)
 def create_app() -> Flask:
     """Application factory — creates and configures the Flask app."""
     app = Flask(__name__)
+    CORS(app)
 
     # Initialize DB schema on startup (idempotent)
     init_db()
