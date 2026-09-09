@@ -93,24 +93,29 @@ def main() -> None:
     )
     threads.append(heartbeat_thread)
 
-    # ── USB Monitor (stub) ────────────────────────────────────────────────
-    # Uncomment and implement USBMonitor.start() when USB monitoring is ready
-    # usb_monitor = USBMonitor()
-    usb_monitor = USBMonitor(server_url=config["server_url"], hostname=hostname)
+    # ── USB Monitor ───────────────────────────────────────────────────────────
+    # Linux:   active via pyudev.MonitorObserver (pip install pyudev)
+    # Windows: stub — see usb_monitor.py for WMI guide
+    usb_monitor = USBMonitor()
     usb_monitor.on_device_connected(lambda info: _on_usb_connected(info, config, hostname))
+    usb_monitor.on_device_disconnected(lambda info: _on_usb_disconnected(info, config, hostname))
     usb_monitor.start()
-    
-    # usb_monitor.on_device_connected(lambda info: post_event("usb_connected", info))
-    # usb_monitor.start()
 
-    
-    # ── Folder Monitor (stub) ─────────────────────────────────────────────
-    # Uncomment and configure when folder monitoring is ready
+    # ── Folder Monitor ────────────────────────────────────────────────────────
+    # Active on Linux + Windows via watchdog (pip install watchdog).
+    # Watches the user's Downloads folder for executables and scripts.
+    # Change the path and patterns below to suit your lab's policy.
+    import os as _os
+    _watch_path = _os.path.expanduser("~/Downloads")
     folder_monitor = FolderMonitor()
-    #folder_monitor.on_file_detected(lambda info: _on_file_detected(info, config, hostname))
-    #folder_monitor.start(path="C:\\Users\\Public", patterns=["*.exe", "*.bat"])
+    folder_monitor.on_file_detected(lambda info: _on_file_detected(info, config, hostname))
+    folder_monitor.start(
+        path     = _watch_path,
+        patterns = ["*.exe", "*.bat", "*.sh", "*.ps1", "*.vbs", "*.msi"],
+    )
 
-    # ── Start threads ─────────────────────────────────────────────────────
+
+    # ── Start all threads ─────────────────────────────────────────────────────
     for t in threads:
         t.start()
 

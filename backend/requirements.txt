@@ -1,3 +1,11 @@
 flask>=3.0.0
 requests>=2.31.0
 
+# Agent: USB monitoring on Linux (no root required)
+pyudev>=0.24.0
+
+# Agent: Folder monitoring — cross-platform (Linux + Windows)
+watchdog>=4.0.0
+
+#to load the .env variables
+python-dotenv>=1.0.0
