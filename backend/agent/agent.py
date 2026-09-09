@@ -26,16 +26,12 @@ import os
 import socket
 import sys
 import threading
-import dotenv
-
-# Load environment variables from .env file
-dotenv.load_dotenv()
-
 # Ensure the backend/ directory is on sys.path when running as __main__
 _backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _backend_dir not in sys.path:
     sys.path.insert(0, _backend_dir)
 
+from config import AGENT_SERVER_URL, AGENT_HEARTBEAT_INTERVAL
 from agent.heartbeat import start_heartbeat_loop
 from agent.usb_monitor import USBMonitor
 from agent.folder_monitor import FolderMonitor
@@ -52,11 +48,12 @@ logger = logging.getLogger("labguard.agent")
 # ── Config ────────────────────────────────────────────────────────────────────
 
 def _load_config() -> dict:
-    """Load agent configuration from environment variables."""
+    """Load agent configuration."""
     return {
-        "server_url": os.environ.get("LABGUARD_SERVER_URL", "http://localhost:5000"),
-        "heartbeat_interval": int(os.environ.get("LABGUARD_HEARTBEAT_INTERVAL", "30")),
+        "server_url": AGENT_SERVER_URL,
+        "heartbeat_interval": AGENT_HEARTBEAT_INTERVAL,
     }
+
 
 
 def _get_hostname() -> str:

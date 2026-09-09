@@ -12,8 +12,13 @@ On Windows (PowerShell):
 """
 
 import os
+from pathlib import Path
+from dotenv import load_dotenv
 
-# ──────────────────────────────────────────────
+# Automatically locate and load .env from the backend/ directory
+_env_path = Path(__file__).resolve().parent / ".env"
+load_dotenv(dotenv_path=_env_path)
+
 # Database
 # ──────────────────────────────────────────────
 DATABASE_PATH = os.environ.get("LABGUARD_DB_PATH", "database/labguard.db")

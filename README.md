@@ -28,8 +28,8 @@ backend/
 │   ├── __init__.py
 │   ├── agent.py           ← Main agent loop (run on each lab computer)
 │   ├── heartbeat.py       ← Cross-platform heartbeat sender (Windows + Linux)
-│   ├── usb_monitor.py     ← USB detection stub (interface defined, not yet active)
-│   └── folder_monitor.py  ← Folder watch stub  (interface defined, not yet active)
+│   ├── usb_monitor.py     ← USB detection 
+│   └── folder_monitor.py  ← Folder monitor
 │
 ├── database/
 │   ├── __init__.py

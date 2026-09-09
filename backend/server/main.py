@@ -11,11 +11,6 @@ Or with a custom host/port:
 import logging
 import sys
 import os
-import dotenv
-
-# Load environment variables from .env file
-dotenv.load_dotenv()
-
 # Make sure the backend/ directory is always on sys.path so that
 # 'from config import ...' and 'from database.database import ...'
 # work regardless of how the module is invoked.
