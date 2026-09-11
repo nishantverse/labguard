@@ -15,7 +15,7 @@ async function request(endpoint, options = {}) {
     let json;
     try {
       json = await response.json();
-    } catch (e) {
+    } catch {
       if (!response.ok) {
         throw new Error(`HTTP Error ${response.status}`);
       }
@@ -42,7 +42,7 @@ async function request(endpoint, options = {}) {
 export function apiGet(endpoint, params = {}) {
   const query = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
-    if (value !== null && value !== undefined) {
+    if (value !== null && value !== undefined && value !== '') {
       query.append(key, value);
     }
   }
@@ -61,6 +61,12 @@ export function apiPost(endpoint, body) {
 export function apiPatch(endpoint, body) {
   return request(endpoint, {
     method: 'PATCH',
-    body: JSON.stringify(body)
+    body: body ? JSON.stringify(body) : undefined
+  });
+}
+
+export function apiDelete(endpoint) {
+  return request(endpoint, {
+    method: 'DELETE'
   });
 }

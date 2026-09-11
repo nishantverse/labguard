@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchEvents } from '../api/events';
 import { fetchComputers } from '../api/computers';
@@ -21,8 +21,7 @@ import {
   Play, 
   Square,
   Clock,
-  Server,
-  Filter
+  Server
 } from 'lucide-react';
 
 const EVENT_TYPES = [
@@ -94,7 +93,7 @@ export default function Events() {
     limit: 150 
   }), [typeFilter, computerFilter]);
   
-  const { data: events, loading, error, refetch } = usePolling(fetchFn);
+  const { data: events, loading, error, refetch } = usePolling(fetchFn, { deps: [typeFilter, computerFilter] });
 
   // Filter by search query client-side
   const filteredEvents = useMemo(() => {

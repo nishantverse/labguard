@@ -33,7 +33,7 @@ export default function Alerts() {
     limit: 200 
   }), [severityFilter, statusFilter]);
 
-  const { data: alerts, loading, error, refetch } = usePolling(fetchFn);
+  const { data: alerts, loading, error, refetch } = usePolling(fetchFn, { deps: [severityFilter, statusFilter] });
 
   const handleAcknowledge = async (alertId) => {
     try {

@@ -1,7 +1,7 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { fetchComputer } from '../api/computers';
+import { fetchComputer, deleteComputer } from '../api/computers';
 import { fetchEvents } from '../api/events';
 import { fetchAlerts, acknowledgeAlert } from '../api/alerts';
 import usePolling from '../hooks/usePolling';
@@ -14,32 +14,41 @@ import RelativeTime from '../components/RelativeTime';
 import { formatExactTime, formatDateTime } from '../utils/date';
 import { 
   ArrowLeft, 
-  Monitor, 
   Activity, 
   AlertTriangle, 
   Calendar, 
   Clock, 
   Globe, 
-  Shield, 
-  Check,
-  Server
+  Server,
+  Trash2
 } from 'lucide-react';
 
 export default function ComputerDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  // Fetch computer info
+  // Fetch computer info with reactive deps
   const fetchCompFn = useCallback(() => fetchComputer(id), [id]);
-  const { data: computer, loading: compLoading, error: compError, refetch: refetchComp } = usePolling(fetchCompFn, { interval: 10000 });
+  const { data: computer, loading: compLoading, error: compError, refetch: refetchComp } = usePolling(
+    fetchCompFn, 
+    { interval: 10000, deps: [id] }
+  );
 
-  // Fetch events for this computer (supported by GET /api/events?computer_id=)
+  // Fetch events for this computer
   const fetchEventsFn = useCallback(() => fetchEvents({ computer_id: id, limit: 50 }), [id]);
-  const { data: events, loading: eventsLoading, refetch: refetchEvents } = usePolling(fetchEventsFn, { interval: 10000 });
+  const { data: events, loading: eventsLoading } = usePolling(
+    fetchEventsFn, 
+    { interval: 10000, deps: [id] }
+  );
 
   // Fetch alerts (filter client-side since backend /api/alerts filters by severity/acknowledged)
   const fetchAlertsFn = useCallback(() => fetchAlerts({ limit: 200 }), []);
-  const { data: allAlerts, loading: alertsLoading, refetch: refetchAlerts } = usePolling(fetchAlertsFn, { interval: 10000 });
+  const { data: allAlerts, loading: alertsLoading, refetch: refetchAlerts } = usePolling(
+    fetchAlertsFn, 
+    { interval: 10000 }
+  );
 
   // Filter alerts for this computer
   const systemAlerts = useMemo(() => {
@@ -54,6 +63,19 @@ export default function ComputerDetails() {
       refetchAlerts();
     } catch (err) {
       toast.error(err.message || 'Failed to acknowledge alert');
+    }
+  };
+
+  const handleDeleteComputer = async () => {
+    setIsDeleting(true);
+    try {
+      await deleteComputer(id);
+      toast.success(`Computer #${id} decommissioned successfully`);
+      navigate('/computers');
+    } catch (err) {
+      toast.error(err.message || 'Failed to decommission computer');
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -162,13 +184,24 @@ export default function ComputerDetails() {
             <div>
               <div className="flex items-center gap-3">
                 <h1 className="text-2xl font-bold text-gray-100">{computer.hostname}</h1>
-                <StatusBadge online={computer.online} />
               </div>
               <p className="text-xs font-mono text-gray-400 mt-1 flex items-center gap-2">
                 <Globe size={12} className="text-gray-500" />
                 IP: {computer.ip_address || 'Unassigned'}
               </p>
             </div>
+          </div>
+
+          <div className="flex items-center gap-3 self-start md:self-auto">
+            <StatusBadge online={computer.online} />
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-medium transition-colors"
+              title="Decommission this computer"
+            >
+              <Trash2 size={13} />
+              Decommission
+            </button>
           </div>
         </div>
 
@@ -185,7 +218,7 @@ export default function ComputerDetails() {
           </div>
 
           <div className="bg-gray-800/40 p-3.5 rounded-xl border border-gray-800">
-            <span className="text-[10px] uppercase font-mono text-gray-500 block mb-1 flex items-center gap-1">
+            <span className="text-[10px] uppercase font-mono text-gray-500 mb-1 flex items-center gap-1">
               <Clock size={11} /> Last Seen
             </span>
             <p className="font-mono text-sm font-semibold text-gray-200">
@@ -195,7 +228,7 @@ export default function ComputerDetails() {
           </div>
 
           <div className="bg-gray-800/40 p-3.5 rounded-xl border border-gray-800">
-            <span className="text-[10px] uppercase font-mono text-gray-500 block mb-1 flex items-center gap-1">
+            <span className="text-[10px] uppercase font-mono text-gray-500 mb-1 flex items-center gap-1">
               <Calendar size={11} /> Registered
             </span>
             <p className="font-mono text-sm font-semibold text-gray-200">
@@ -250,6 +283,53 @@ export default function ComputerDetails() {
           </div>
         </div>
       </div>
+
+      {/* Decommission Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn"
+          onClick={() => !isDeleting && setShowDeleteConfirm(false)}
+        >
+          <div 
+            className="bg-gray-900 border border-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400">
+                <AlertTriangle size={22} />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-100">Decommission Computer</h3>
+                <p className="text-xs text-gray-500 font-mono">Irreversible Action</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-300 leading-relaxed bg-gray-800/40 p-3 rounded-lg border border-gray-800">
+              Are you sure you want to remove <strong className="text-white font-mono">{computer.hostname}</strong> (ID #{computer.id})? All associated security events, alerts, and registration telemetry will be permanently deleted from the database.
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-gray-800">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+                className="px-3.5 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteComputer}
+                disabled={isDeleting}
+                className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-medium rounded-lg transition-colors shadow-sm disabled:opacity-50 flex items-center gap-1.5"
+              >
+                <Trash2 size={13} />
+                {isDeleting ? 'Decommissioning...' : 'Confirm Decommission'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

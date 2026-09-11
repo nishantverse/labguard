@@ -2,19 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { formatRelativeTime, formatDateTime } from '../utils/date';
 
 export default function RelativeTime({ timestamp, className = '', showExactOnHover = true }) {
-  const [relativeText, setRelativeText] = useState(() => formatRelativeTime(timestamp));
+  // Simple tick counter to force re-evaluation of relative time every 10 seconds
+  const [, setTick] = useState(0);
 
   useEffect(() => {
-    setRelativeText(formatRelativeTime(timestamp));
-    
-    // Refresh relative text every 10 seconds
     const interval = setInterval(() => {
-      setRelativeText(formatRelativeTime(timestamp));
+      setTick(t => (t + 1) % 10000);
     }, 10000);
     
     return () => clearInterval(interval);
-  }, [timestamp]);
+  }, []);
 
+  const relativeText = formatRelativeTime(timestamp);
   const fullDateTime = showExactOnHover ? formatDateTime(timestamp) : (timestamp || 'Unknown');
 
   return (

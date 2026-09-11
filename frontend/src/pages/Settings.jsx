@@ -1,82 +1,140 @@
 import React, { useState, useEffect } from 'react';
 import useLocalStorage from '../hooks/useLocalStorage';
-import { Settings as SettingsIcon, CheckCircle, XCircle } from 'lucide-react';
+import { CheckCircle, XCircle, RefreshCw, Server, Sliders, Shield } from 'lucide-react';
 
 export default function Settings() {
   const [pollingInterval, setPollingInterval] = useLocalStorage('labguard_polling_interval', 12000);
   const [apiStatus, setApiStatus] = useState('checking');
-  const apiUrl = 'http://127.0.0.1:5000';
+  const [isTesting, setIsTesting] = useState(false);
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api';
+
+  const testConnection = async () => {
+    setIsTesting(true);
+    setApiStatus('checking');
+    try {
+      const baseUrl = apiUrl.replace(/\/api\/?$/, '');
+      const res = await fetch(baseUrl || '/', { method: 'GET' });
+      setApiStatus(res.ok ? 'connected' : 'disconnected');
+    } catch {
+      setApiStatus('disconnected');
+    } finally {
+      setIsTesting(false);
+    }
+  };
 
   useEffect(() => {
-    let mounted = true;
-    fetch(apiUrl)
-      .then(res => {
-        if (mounted) setApiStatus(res.ok ? 'connected' : 'disconnected');
-      })
-      .catch(() => {
-        if (mounted) setApiStatus('disconnected');
-      });
-    return () => { mounted = false; };
+    testConnection();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiUrl]);
 
   return (
-    <div className="space-y-6 max-w-2xl">
-      <div className="flex items-center gap-3 mb-6">
-        <h1 className="text-2xl font-bold text-gray-100">Settings</h1>
+    <div className="space-y-6 max-w-3xl">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-100">Console Settings</h1>
+          <p className="text-xs text-gray-500 font-mono mt-0.5">LabGuard Security Monitoring • Administrator Configuration</p>
+        </div>
       </div>
 
-      <div className="bg-gray-900/80 rounded-xl border border-gray-700/50 p-6 flex flex-col gap-4">
-        <h3 className="text-lg font-semibold text-gray-200 border-b border-gray-700/50 pb-3">API Configuration</h3>
+      {/* API Configuration Card */}
+      <div className="bg-gray-900/80 rounded-xl border border-gray-800 p-6 flex flex-col gap-4 shadow-sm">
+        <div className="flex items-center justify-between border-b border-gray-800 pb-3">
+          <h3 className="text-sm font-semibold text-gray-200 flex items-center gap-2">
+            <Server size={16} className="text-blue-400" />
+            Backend REST API Configuration
+          </h3>
+          <button
+            onClick={testConnection}
+            disabled={isTesting}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-medium transition-all disabled:opacity-50"
+          >
+            <RefreshCw size={13} className={isTesting ? 'animate-spin text-blue-400' : ''} />
+            Test Connection
+          </button>
+        </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">API URL</label>
+          <label className="block text-xs font-mono uppercase text-gray-400 mb-2">Configured REST Base URL</label>
           <input 
             type="text" 
             readOnly 
             value={apiUrl}
-            className="w-full bg-gray-800 border border-gray-700/50 rounded-lg px-4 py-2.5 text-gray-200 focus:outline-none opacity-80 cursor-not-allowed"
+            className="w-full bg-gray-800/80 border border-gray-700/60 rounded-lg px-4 py-2.5 text-xs font-mono text-gray-200 focus:outline-none cursor-default"
           />
+          <p className="text-[11px] text-gray-500 mt-1.5 font-mono">
+            Configured in <code className="text-gray-400 font-semibold">.env</code> as <code className="text-blue-400">VITE_API_URL</code>.
+          </p>
         </div>
         
-        <div className="flex items-center gap-2 mt-2 text-sm">
-          <span className="text-gray-400">Connection Status:</span>
+        <div className="flex items-center justify-between pt-2 border-t border-gray-800/60 text-xs">
+          <span className="text-gray-400 font-mono">Connection Status:</span>
           {apiStatus === 'checking' ? (
-            <span className="text-gray-500">Checking...</span>
+            <span className="text-gray-400 font-mono flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+              Checking...
+            </span>
           ) : apiStatus === 'connected' ? (
-            <span className="flex items-center gap-1 text-emerald-500"><CheckCircle size={14} /> Connected</span>
+            <span className="flex items-center gap-1.5 text-emerald-400 font-mono font-medium">
+              <CheckCircle size={14} /> Connected & Operational
+            </span>
           ) : (
-            <span className="flex items-center gap-1 text-red-500"><XCircle size={14} /> Disconnected</span>
+            <span className="flex items-center gap-1.5 text-red-400 font-mono font-medium">
+              <XCircle size={14} /> Disconnected (Check Flask Server)
+            </span>
           )}
         </div>
       </div>
 
-      <div className="bg-gray-900/80 rounded-xl border border-gray-700/50 p-6 flex flex-col gap-4">
-        <h3 className="text-lg font-semibold text-gray-200 border-b border-gray-700/50 pb-3">Dashboard Preferences</h3>
+      {/* Dashboard Preferences Card */}
+      <div className="bg-gray-900/80 rounded-xl border border-gray-800 p-6 flex flex-col gap-4 shadow-sm">
+        <h3 className="text-sm font-semibold text-gray-200 border-b border-gray-800 pb-3 flex items-center gap-2">
+          <Sliders size={16} className="text-blue-400" />
+          Dashboard & Polling Preferences
+        </h3>
         
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Polling Interval</label>
+          <label className="block text-xs font-mono uppercase text-gray-400 mb-2">Telemetry Polling Interval</label>
           <select 
             value={pollingInterval}
             onChange={(e) => setPollingInterval(Number(e.target.value))}
-            className="w-full bg-gray-800 border border-gray-700/50 rounded-lg px-4 py-2.5 text-gray-200 focus:outline-none focus:border-blue-500/50"
+            className="w-full bg-gray-800 border border-gray-700/60 rounded-lg px-4 py-2.5 text-xs font-mono text-gray-200 focus:outline-none focus:border-blue-500/50"
           >
-            <option value={5000}>5 Seconds</option>
-            <option value={10000}>10 Seconds</option>
-            <option value={12000}>12 Seconds</option>
+            <option value={5000}>5 Seconds (Fast Telemetry)</option>
+            <option value={10000}>10 Seconds (Recommended)</option>
+            <option value={12000}>12 Seconds (Default)</option>
             <option value={15000}>15 Seconds</option>
-            <option value={30000}>30 Seconds</option>
+            <option value={30000}>30 Seconds (Low Network Usage)</option>
             <option value={60000}>60 Seconds</option>
           </select>
-          <p className="text-xs text-amber-500/80 mt-2">Note: Changes take effect on next page load.</p>
+          <p className="text-[11px] text-gray-500 mt-2 font-mono">
+            Stored locally in browser storage. Determines how frequently the dashboard queries system summaries, events, and alerts.
+          </p>
         </div>
       </div>
 
-      <div className="bg-gray-900/80 rounded-xl border border-gray-700/50 p-6 flex flex-col gap-4">
-        <h3 className="text-lg font-semibold text-gray-200 border-b border-gray-700/50 pb-3">About</h3>
-        <div className="space-y-1">
-          <p className="text-gray-200 font-medium">LabGuard v1.0.0</p>
-          <p className="text-sm text-gray-400">Smart Security Monitoring System</p>
-          <p className="text-sm text-gray-500 mt-2">Laboratory security monitoring for authorized college computers.</p>
+      {/* Architecture & About */}
+      <div className="bg-gray-900/80 rounded-xl border border-gray-800 p-6 flex flex-col gap-3 shadow-sm">
+        <h3 className="text-sm font-semibold text-gray-200 border-b border-gray-800 pb-3 flex items-center gap-2">
+          <Shield size={16} className="text-emerald-400" />
+          About LabGuard
+        </h3>
+        <div className="space-y-1.5 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-gray-400">Application Version:</span>
+            <span className="font-mono text-gray-200 font-semibold">1.0.0</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-gray-400">Architecture:</span>
+            <span className="font-mono text-gray-200">Decoupled REST Frontend (Vite + React)</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-gray-400">Backend Engine:</span>
+            <span className="font-mono text-gray-200">Python 3 • Flask • SQLite</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-gray-400">Monitoring Scope:</span>
+            <span className="font-mono text-gray-200">USB devices, file events, heartbeat availability</span>
+          </div>
         </div>
       </div>
     </div>

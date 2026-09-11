@@ -91,7 +91,7 @@ export default function Dashboard() {
   const { data, loading, error, refetch, lastUpdated } = usePolling(fetchDashboardSummary);
   
   const alertsFetchFn = useCallback(() => fetchAlerts({ limit: 500 }), []);
-  const { data: alerts, loading: alertsLoading, refetch: refetchAlerts } = usePolling(alertsFetchFn);
+  const { data: alerts, refetch: refetchAlerts } = usePolling(alertsFetchFn);
 
   const handleRefreshAll = () => {
     refetch();
