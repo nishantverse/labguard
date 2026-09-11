@@ -1,25 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Shield, LayoutDashboard, Monitor, Activity, Bell, Settings, X } from 'lucide-react';
+import { useWebSocket } from '../hooks/useWebSocket';
+import { Shield, LayoutDashboard, Monitor, Activity, Bell, Settings, X, Zap } from 'lucide-react';
 
 export default function Sidebar({ isOpen, onClose }) {
-  const [isConnected, setIsConnected] = useState(false);
-
-  useEffect(() => {
-    const checkHealth = async () => {
-      try {
-        const baseUrl = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api').replace(/\/api\/?$/, '');
-        const res = await fetch(baseUrl || '/');
-        setIsConnected(res.ok);
-      } catch {
-        setIsConnected(false);
-      }
-    };
-
-    checkHealth();
-    const interval = setInterval(checkHealth, 30000);
-    return () => clearInterval(interval);
-  }, []);
+  const { connected } = useWebSocket();
 
   const handleNavClick = () => {
     if (onClose) {
@@ -164,20 +149,23 @@ export default function Sidebar({ isOpen, onClose }) {
           <div className="flex items-center justify-between rounded-lg bg-gray-800/40 p-2.5 border border-gray-800 text-xs">
             <div className="flex items-center gap-2">
               <span className="relative flex h-2 w-2">
-                {isConnected && (
+                {connected && (
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
                 )}
                 <span
                   className={`relative inline-flex h-2 w-2 rounded-full ${
-                    isConnected ? 'bg-emerald-500' : 'bg-red-500'
+                    connected ? 'bg-emerald-500' : 'bg-red-500'
                   }`}
                 ></span>
               </span>
               <span className="font-mono text-[11px] text-gray-300">
-                {isConnected ? 'API Online' : 'API Offline'}
+                {connected ? 'Live' : 'Polling'}
               </span>
             </div>
-            <span className="text-[10px] font-mono text-gray-500">v1.0</span>
+            <div className="flex items-center gap-1.5">
+              {connected && <Zap size={11} className="text-emerald-400" />}
+              <span className="text-[10px] font-mono text-gray-500">v1.1</span>
+            </div>
           </div>
         </div>
       </aside>

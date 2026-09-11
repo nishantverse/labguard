@@ -17,6 +17,8 @@ from datetime import datetime, timedelta, timezone
 from database.database import get_db
 from server.routes.helpers import success, error, fmt_ts
 from config import HEARTBEAT_TIMEOUT_SECONDS
+from server.ws import broadcast
+from server.routes.dashboard import get_dashboard_summary
 
 computers_bp = Blueprint("computers", __name__)
 
@@ -119,7 +121,14 @@ def register_computer():
         row = db.execute(
             "SELECT * FROM computers WHERE id = ?", (cursor.lastrowid,)
         ).fetchone()
-        return success(_format(row), 201)
+        formatted = _format(row)
+        # Broadcast new computer registration via WebSocket
+        broadcast('computer_registered', formatted)
+        try:
+            broadcast('dashboard_update', get_dashboard_summary())
+        except Exception:
+            pass
+        return success(formatted, 201)
     except Exception:
         return error("Failed to register computer", 500)
     finally:
@@ -141,6 +150,12 @@ def delete_computer(computer_id):
         db.execute("DELETE FROM events  WHERE computer_id = ?", (computer_id,))
         db.execute("DELETE FROM computers WHERE id = ?",        (computer_id,))
         db.commit()
+        # Broadcast computer deletion via WebSocket
+        broadcast('computer_deleted', {'computer_id': computer_id})
+        try:
+            broadcast('dashboard_update', get_dashboard_summary())
+        except Exception:
+            pass
         return success({"message": f"Computer {computer_id} deleted"})
     except Exception:
         return error("Failed to delete computer", 500)

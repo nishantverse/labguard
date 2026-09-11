@@ -25,11 +25,15 @@ from config import HEARTBEAT_TIMEOUT_SECONDS
 dashboard_bp = Blueprint("dashboard", __name__)
 
 
-@dashboard_bp.route("/api/dashboard/summary", methods=["GET"])
-def dashboard_summary():
+def get_dashboard_summary() -> dict:
+    """Build and return the dashboard summary dict.
+
+    Extracted as a standalone function so it can be called from
+    both the HTTP route and WebSocket broadcast helpers.
+    The caller is responsible for error handling.
+    """
     db = get_db()
     try:
-        # Compute UTC cutoff timestamp in SQLite-compatible format
         cutoff = (
             datetime.now(timezone.utc) - timedelta(seconds=HEARTBEAT_TIMEOUT_SECONDS)
         ).strftime("%Y-%m-%d %H:%M:%S")
@@ -67,17 +71,20 @@ def dashboard_summary():
             d["timestamp"] = fmt_ts(d.get("timestamp"))
             recent_events.append(d)
 
-        return success(
-            {
-                "total_computers":  total_computers,
-                "online_computers": online_computers,
-                "offline_computers": total_computers - online_computers,
-                "active_alerts":    active_alerts,
-                "recent_events":    recent_events,
-            }
-        )
-    except Exception:
-        return error("Failed to retrieve dashboard summary", 500)
+        return {
+            "total_computers": total_computers,
+            "online_computers": online_computers,
+            "offline_computers": total_computers - online_computers,
+            "active_alerts": active_alerts,
+            "recent_events": recent_events,
+        }
     finally:
         db.close()
 
+
+@dashboard_bp.route("/api/dashboard/summary", methods=["GET"])
+def dashboard_summary():
+    try:
+        return success(get_dashboard_summary())
+    except Exception:
+        return error("Failed to retrieve dashboard summary", 500)

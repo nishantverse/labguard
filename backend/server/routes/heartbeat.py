@@ -15,6 +15,8 @@ from flask import Blueprint, request
 
 from database.database import get_db
 from server.routes.helpers import success, error
+from server.ws import broadcast
+from server.routes.dashboard import get_dashboard_summary
 
 heartbeat_bp = Blueprint("heartbeat", __name__)
 
@@ -61,6 +63,12 @@ def heartbeat():
             computer_id = cursor.lastrowid
 
         db.commit()
+        # Broadcast computer status update via WebSocket
+        broadcast('computer_status', {'computer_id': computer_id, 'hostname': hostname, 'status': 'online'})
+        try:
+            broadcast('dashboard_update', get_dashboard_summary())
+        except Exception:
+            pass
         return success({"computer_id": computer_id, "hostname": hostname, "status": "online"})
     except Exception:
         return error("Heartbeat processing failed", 500)

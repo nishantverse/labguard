@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchComputers } from '../api/computers';
-import usePolling from '../hooks/usePolling';
+import useRealtimeData from '../hooks/useRealtimeData';
 import StatusBadge from '../components/StatusBadge';
 import ErrorState from '../components/ErrorState';
 import EmptyState from '../components/EmptyState';
@@ -14,7 +14,11 @@ export default function Computers() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'online', 'offline'
   
-  const { data: computers, loading, error, refetch } = usePolling(fetchComputers);
+  const { data: computers, loading, error, refetch } = useRealtimeData(
+    fetchComputers,
+    [],
+    { refetchEvents: ['computer_status', 'computer_registered', 'computer_deleted'] }
+  );
 
   const filteredComputers = useMemo(() => {
     if (!Array.isArray(computers)) return [];

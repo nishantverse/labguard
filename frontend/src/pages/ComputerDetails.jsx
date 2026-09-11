@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { fetchComputer, deleteComputer } from '../api/computers';
 import { fetchEvents } from '../api/events';
 import { fetchAlerts, acknowledgeAlert } from '../api/alerts';
-import usePolling from '../hooks/usePolling';
+import useRealtimeData from '../hooks/useRealtimeData';
 import StatusBadge from '../components/StatusBadge';
 import SeverityBadge from '../components/SeverityBadge';
 import ErrorState from '../components/ErrorState';
@@ -29,25 +29,26 @@ export default function ComputerDetails() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Fetch computer info with reactive deps
   const fetchCompFn = useCallback(() => fetchComputer(id), [id]);
-  const { data: computer, loading: compLoading, error: compError, refetch: refetchComp } = usePolling(
-    fetchCompFn, 
-    { interval: 10000, deps: [id] }
-  );
-
-  // Fetch events for this computer
   const fetchEventsFn = useCallback(() => fetchEvents({ computer_id: id, limit: 50 }), [id]);
-  const { data: events, loading: eventsLoading } = usePolling(
-    fetchEventsFn, 
-    { interval: 10000, deps: [id] }
+  const fetchAlertsFn = useCallback(() => fetchAlerts({ computer_id: id, limit: 200 }), [id]);
+
+  const { data: computer, loading: compLoading, error: compError, refetch: refetchComp } = useRealtimeData(
+    fetchCompFn,
+    [],
+    { interval: 10000, deps: [id], refetchEvents: ['computer_status'] }
   );
 
-  // Fetch alerts (filter client-side since backend /api/alerts filters by severity/acknowledged)
-  const fetchAlertsFn = useCallback(() => fetchAlerts({ limit: 200 }), []);
-  const { data: allAlerts, loading: alertsLoading, refetch: refetchAlerts } = usePolling(
-    fetchAlertsFn, 
-    { interval: 10000 }
+  const { data: events, loading: eventsLoading } = useRealtimeData(
+    fetchEventsFn,
+    [],
+    { interval: 10000, deps: [id], refetchEvents: ['new_event'] }
+  );
+
+  const { data: allAlerts, loading: alertsLoading, refetch: refetchAlerts } = useRealtimeData(
+    fetchAlertsFn,
+    [],
+    { interval: 10000, refetchEvents: ['new_alert', 'alert_acknowledged'] }
   );
 
   // Filter alerts for this computer

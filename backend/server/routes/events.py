@@ -19,6 +19,8 @@ from flask import Blueprint, request
 from database.database import get_db
 from server.routes.helpers import success, error, fmt_ts
 from server.services.alert_service import process_event, ALERT_RULES
+from server.ws import broadcast
+from server.routes.dashboard import get_dashboard_summary
 
 logger = logging.getLogger(__name__)
 events_bp = Blueprint("events", __name__)
@@ -195,6 +197,13 @@ def create_event():
             result["alert_id"] = alert_id
         else:
             result["alert_created"] = False
+
+        # ── Broadcast real-time updates ────────────────────────────────
+        broadcast('new_event', result)
+        try:
+            broadcast('dashboard_update', get_dashboard_summary())
+        except Exception:
+            pass  # Dashboard broadcast failure shouldn't break event creation
 
         return success(result, 201)
     except Exception as exc:

@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import useLocalStorage from '../hooks/useLocalStorage';
-import { CheckCircle, XCircle, RefreshCw, Server, Sliders, Shield } from 'lucide-react';
+import { useWebSocket } from '../hooks/useWebSocket';
+import { CheckCircle, XCircle, RefreshCw, Server, Sliders, Shield, Wifi } from 'lucide-react';
 
 export default function Settings() {
   const [pollingInterval, setPollingInterval] = useLocalStorage('labguard_polling_interval', 12000);
   const [apiStatus, setApiStatus] = useState('checking');
   const [isTesting, setIsTesting] = useState(false);
   const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api';
+  const { connected } = useWebSocket();
+  const wsUrl = import.meta.env.VITE_WS_URL || 'http://127.0.0.1:5000';
 
   const testConnection = async () => {
     setIsTesting(true);
@@ -85,6 +88,47 @@ export default function Settings() {
         </div>
       </div>
 
+      {/* WebSocket Configuration Card */}
+      <div className="bg-gray-900/80 rounded-xl border border-gray-800 p-6 flex flex-col gap-4 shadow-sm">
+        <div className="flex items-center justify-between border-b border-gray-800 pb-3">
+          <h3 className="text-sm font-semibold text-gray-200 flex items-center gap-2">
+            <Wifi size={16} className="text-emerald-400" />
+            WebSocket (Real-time) Configuration
+          </h3>
+        </div>
+        
+        <div>
+          <label className="block text-xs font-mono uppercase text-gray-400 mb-2">WebSocket Server URL</label>
+          <input 
+            type="text" 
+            readOnly 
+            value={wsUrl}
+            className="w-full bg-gray-800/80 border border-gray-700/60 rounded-lg px-4 py-2.5 text-xs font-mono text-gray-200 focus:outline-none cursor-default"
+          />
+          <p className="text-[11px] text-gray-500 mt-1.5 font-mono">
+            Configured in <code className="text-gray-400 font-semibold">.env</code> as <code className="text-blue-400">VITE_WS_URL</code>. Uses Socket.IO protocol.
+          </p>
+        </div>
+        
+        <div className="flex items-center justify-between pt-2 border-t border-gray-800/60 text-xs">
+          <span className="text-gray-400 font-mono">WebSocket Status:</span>
+          {connected ? (
+            <span className="flex items-center gap-1.5 text-emerald-400 font-mono font-medium">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+              </span>
+              Connected (Real-time active)
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5 text-amber-400 font-mono font-medium">
+              <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+              Disconnected (Fallback: HTTP Polling)
+            </span>
+          )}
+        </div>
+      </div>
+
       {/* Dashboard Preferences Card */}
       <div className="bg-gray-900/80 rounded-xl border border-gray-800 p-6 flex flex-col gap-4 shadow-sm">
         <h3 className="text-sm font-semibold text-gray-200 border-b border-gray-800 pb-3 flex items-center gap-2">
@@ -121,11 +165,15 @@ export default function Settings() {
         <div className="space-y-1.5 text-xs">
           <div className="flex items-center justify-between">
             <span className="text-gray-400">Application Version:</span>
-            <span className="font-mono text-gray-200 font-semibold">1.0.0</span>
+            <span className="font-mono text-gray-200 font-semibold">1.1.0</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-gray-400">Architecture:</span>
-            <span className="font-mono text-gray-200">Decoupled REST Frontend (Vite + React)</span>
+            <span className="font-mono text-gray-200">Decoupled Frontend (Vite + React + Socket.IO)</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-gray-400">Data Transport:</span>
+            <span className="font-mono text-gray-200">WebSocket (Socket.IO) + HTTP REST fallback</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-gray-400">Backend Engine:</span>

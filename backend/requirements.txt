@@ -1,4 +1,7 @@
 flask>=3.0.0
+flask-cors>=5.0.0
+flask-socketio>=5.5.0
+simple-websocket>=1.1.0
 requests>=2.31.0
 
 # Agent: USB monitoring on Linux (no root required)

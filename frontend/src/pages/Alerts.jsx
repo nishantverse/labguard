@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { fetchAlerts, acknowledgeAlert } from '../api/alerts';
-import usePolling from '../hooks/usePolling';
+import useRealtimeData from '../hooks/useRealtimeData';
 import ErrorState from '../components/ErrorState';
 import DataTable from '../components/DataTable';
 import RelativeTime from '../components/RelativeTime';
@@ -27,13 +27,19 @@ export default function Alerts() {
   const [selectedAlert, setSelectedAlert] = useState(null);
   const [acknowledgingId, setAcknowledgingId] = useState(null);
 
-  const fetchFn = useCallback(() => fetchAlerts({ 
-    severity: severityFilter || undefined, 
-    acknowledged: statusFilter === 'all' ? undefined : statusFilter === 'acknowledged' ? 'true' : 'false', 
-    limit: 200 
-  }), [severityFilter, statusFilter]);
+  const fetchFn = useCallback(() => {
+    const params = {};
+    if (severityFilter) params.severity = severityFilter;
+    if (statusFilter === 'unacknowledged') params.acknowledged = false;
+    if (statusFilter === 'acknowledged') params.acknowledged = true;
+    return fetchAlerts(params);
+  }, [severityFilter, statusFilter]);
 
-  const { data: alerts, loading, error, refetch } = usePolling(fetchFn, { deps: [severityFilter, statusFilter] });
+  const { data: alerts, loading, error, refetch } = useRealtimeData(
+    fetchFn,
+    [],
+    { deps: [severityFilter, statusFilter], refetchEvents: ['new_alert', 'alert_acknowledged'] }
+  );
 
   const handleAcknowledge = async (alertId) => {
     try {

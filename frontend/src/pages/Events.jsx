@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchEvents } from '../api/events';
 import { fetchComputers } from '../api/computers';
-import usePolling from '../hooks/usePolling';
+import useRealtimeData from '../hooks/useRealtimeData';
 import ErrorState from '../components/ErrorState';
 import DataTable from '../components/DataTable';
 import RelativeTime from '../components/RelativeTime';
@@ -84,16 +84,22 @@ export default function Events() {
   const [selectedEvent, setSelectedEvent] = useState(null);
 
   // Fetch computers for the filter dropdown
-  const { data: computers } = usePolling(fetchComputers);
+  const { data: computers } = useRealtimeData(fetchComputers, []);
 
   // Fetch events with server-side filters (computer_id & event_type)
-  const fetchFn = useCallback(() => fetchEvents({ 
-    event_type: typeFilter || undefined, 
-    computer_id: computerFilter || undefined,
-    limit: 150 
-  }), [typeFilter, computerFilter]);
-  
-  const { data: events, loading, error, refetch } = usePolling(fetchFn, { deps: [typeFilter, computerFilter] });
+  const fetchFn = useCallback(() => {
+    const params = {};
+    if (typeFilter) params.event_type = typeFilter;
+    if (computerFilter) params.computer_id = computerFilter;
+    return fetchEvents(params);
+  }, [typeFilter, computerFilter]);
+
+  // Events:
+  const { data: events, loading, error, refetch } = useRealtimeData(
+    fetchFn,
+    [],
+    { deps: [typeFilter, computerFilter], refetchEvents: ['new_event'] }
+  );
 
   // Filter by search query client-side
   const filteredEvents = useMemo(() => {

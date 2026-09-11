@@ -1,7 +1,7 @@
 import React, { useMemo, useCallback } from 'react';
 import { fetchDashboardSummary } from '../api/dashboard';
 import { fetchAlerts } from '../api/alerts';
-import usePolling from '../hooks/usePolling';
+import useRealtimeData from '../hooks/useRealtimeData';
 import StatCard from '../components/StatCard';
 import EmptyState from '../components/EmptyState';
 import ErrorState from '../components/ErrorState';
@@ -88,10 +88,17 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 export default function Dashboard() {
-  const { data, loading, error, refetch, lastUpdated } = usePolling(fetchDashboardSummary);
-  
+  const { data, loading, error, refetch, lastUpdated } = useRealtimeData(
+    fetchDashboardSummary,
+    [{ event: 'dashboard_update', handler: (_prev, payload) => payload }],
+    { refetchEvents: ['new_alert', 'alert_acknowledged', 'new_event', 'computer_status', 'computer_registered', 'computer_deleted'] }
+  );
   const alertsFetchFn = useCallback(() => fetchAlerts({ limit: 500 }), []);
-  const { data: alerts, refetch: refetchAlerts } = usePolling(alertsFetchFn);
+  const { data: alerts, refetch: refetchAlerts } = useRealtimeData(
+    alertsFetchFn,
+    [{ event: 'new_alert', handler: (prev, alert) => Array.isArray(prev) ? [alert, ...prev] : [alert] }],
+    { refetchEvents: ['new_alert', 'alert_acknowledged'] }
+  );
 
   const handleRefreshAll = () => {
     refetch();
@@ -306,7 +313,7 @@ export default function Dashboard() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
                   <XAxis type="number" stroke="#64748b" tick={{ fontSize: 11 }} />
                   <YAxis dataKey="name" type="category" stroke="#64748b" width={70} tick={{ fontSize: 11 }} />
-                  <RechartsTooltip content={<CustomTooltip />} />
+                  <RechartsTooltip content={<CustomTooltip />} cursor={false} />
                   <Bar dataKey="value" radius={[0, 4, 4, 0]}>
                     {barData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.fill} />

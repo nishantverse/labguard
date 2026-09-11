@@ -17,6 +17,8 @@ from flask import Blueprint, request
 from database.database import get_db
 from server.routes.helpers import success, error, fmt_ts
 from server.services.alert_service import SEVERITIES
+from server.ws import broadcast
+from server.routes.dashboard import get_dashboard_summary
 
 alerts_bp = Blueprint("alerts", __name__)
 
@@ -114,6 +116,12 @@ def acknowledge_alert(alert_id):
             "UPDATE alerts SET acknowledged = 1 WHERE id = ?", (alert_id,)
         )
         db.commit()
+        # Broadcast acknowledgement via WebSocket
+        broadcast('alert_acknowledged', {'alert_id': alert_id})
+        try:
+            broadcast('dashboard_update', get_dashboard_summary())
+        except Exception:
+            pass
         return success({"message": "Alert acknowledged", "alert_id": alert_id})
     except Exception:
         return error("Failed to acknowledge alert", 500)

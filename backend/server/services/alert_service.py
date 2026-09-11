@@ -101,6 +101,20 @@ def process_event(
             f"Alert created (id={alert_id}, severity={severity}) "
             f"for event_type={event_type!r} on {hostname!r}"
         )
+        # Broadcast new alert via WebSocket
+        try:
+            from server.ws import broadcast
+            broadcast('new_alert', {
+                'id': alert_id,
+                'computer_id': computer_id,
+                'event_id': event_id,
+                'severity': severity,
+                'message': message,
+                'hostname': hostname,
+                'acknowledged': False,
+            })
+        except Exception as ws_exc:
+            logger.warning(f"WebSocket broadcast failed for alert {alert_id}: {ws_exc}")
         return alert_id
     except Exception as exc:
         logger.error(f"Failed to create alert for event {event_id}: {exc}")
