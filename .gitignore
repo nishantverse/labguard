@@ -1,0 +1,5 @@
+# Personal local scripts (not in main repo)
+*uninstall*
+personal/
+*.local.*
+

@@ -13,11 +13,21 @@ On Windows (PowerShell):
 
 import os
 from pathlib import Path
-from dotenv import load_dotenv
 
-# Automatically locate and load .env from the backend/ directory
+# Automatically locate and load .env (works with or without python-dotenv)
 _env_path = Path(__file__).resolve().parent / ".env"
-load_dotenv(dotenv_path=_env_path)
+if _env_path.is_file():
+    try:
+        with open(_env_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    k, v = k.strip(), v.strip().strip("'\"")
+                    if k not in os.environ:
+                        os.environ[k] = v
+    except Exception:
+        pass
 
 # Database
 # ──────────────────────────────────────────────

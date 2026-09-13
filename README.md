@@ -2,6 +2,8 @@
 
 Centralized security monitoring for authorized college computer laboratories.
 
+> 📖 **Looking for setup and run instructions?** Check out the step-by-step **[How-To-Use Guide (HOW_TO_USE.md)](./HOW_TO_USE.md)** for detailed server, agent, and dashboard setup instructions.
+
 ---
 
 ## System Architecture

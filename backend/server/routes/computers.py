@@ -98,7 +98,7 @@ def register_computer():
     if not data:
         return error("Request body must be JSON", 400)
 
-    hostname = (data.get("hostname") or "").strip()
+    hostname = (data.get("hostname") or "").strip().lower()
     if not hostname:
         return error("hostname is required", 400)
 
@@ -107,7 +107,7 @@ def register_computer():
     db = get_db()
     try:
         existing = db.execute(
-            "SELECT id FROM computers WHERE hostname = ?", (hostname,)
+            "SELECT id FROM computers WHERE LOWER(hostname) = ?", (hostname,)
         ).fetchone()
         if existing:
             return error(f"A computer with hostname '{hostname}' is already registered", 409)

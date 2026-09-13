@@ -17,7 +17,7 @@ _backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _backend_dir not in sys.path:
     sys.path.insert(0, _backend_dir)
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 
 from database.database import init_db
 from server.routes.computers import computers_bp
@@ -25,12 +25,18 @@ from server.routes.heartbeat import heartbeat_bp
 from server.routes.events import events_bp
 from server.routes.alerts import alerts_bp
 from server.routes.dashboard import dashboard_bp
+from server.routes.install import install_bp
 from config import SERVER_HOST, SERVER_PORT, DEBUG
 
 logging.basicConfig(
     level=logging.DEBUG if DEBUG else logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
+# Suppress noisy library debug logs (watchdog inotify scanning, engineio ping/pong)
+logging.getLogger("watchdog").setLevel(logging.WARNING)
+logging.getLogger("engineio").setLevel(logging.WARNING)
+logging.getLogger("socketio").setLevel(logging.WARNING)
+
 logger = logging.getLogger(__name__)
 
 # Import single SocketIO instance defined in server.ws
@@ -54,10 +60,12 @@ def create_app() -> Flask:
     app.register_blueprint(events_bp)
     app.register_blueprint(alerts_bp)
     app.register_blueprint(dashboard_bp)
+    app.register_blueprint(install_bp)
 
     # ── Root endpoint ────────────────────────────────────────────────────
     @app.route("/")
     def index():
+        host_url = request.host_url.rstrip("/")
         return jsonify(
             {
                 "success": True,
@@ -66,7 +74,11 @@ def create_app() -> Flask:
                     "version": "1.1.0",
                     "status": "running",
                     "websocket": "enabled",
-                    "docs": "See README.md for the full API contract",
+                    "agent_install": {
+                        "linux": f"curl -sSL {host_url}/script.sh | bash",
+                        "windows": f"irm {host_url}/script.ps1 | iex",
+                    },
+                    "docs": "See README.md and HOW_TO_USE.md for details",
                 },
             }
         )
@@ -105,7 +117,37 @@ def create_app() -> Flask:
 app = create_app()
 
 
+def _get_lan_ip() -> str:
+    """Detect the local outbound IP address for network discovery."""
+    import socket
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("8.8.8.8", 80))
+            return s.getsockname()[0]
+    except Exception:
+        return "127.0.0.1"
+
+
 if __name__ == "__main__":
+    lan_ip = _get_lan_ip()
+    network_url = f"http://{lan_ip}:{SERVER_PORT}"
+    banner = f"""
+======================================================================
+🛡️  LabGuard Server is live!
+   Local URL   : http://127.0.0.1:{SERVER_PORT}
+   Network URL : {network_url}
+
+📦 Client Agent One-Line Auto-Installers:
+   (Run on any computer in your lab to automatically install & link)
+
+   🐧 Linux:
+      curl -sSL {network_url}/script.sh | bash
+
+   🪟 Windows (PowerShell):
+      irm {network_url}/script.ps1 | iex
+======================================================================
+"""
+    print(banner)
     logger.info(f"Starting LabGuard server on {SERVER_HOST}:{SERVER_PORT} (debug={DEBUG})")
     socketio.run(app, host=SERVER_HOST, port=SERVER_PORT, debug=DEBUG,
                  allow_unsafe_werkzeug=True)

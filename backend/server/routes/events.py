@@ -121,7 +121,7 @@ def create_event():
         return error("Request body must be JSON", 400)
 
     # ── Validate required fields ──────────────────────────────────────────
-    hostname = (data.get("hostname") or "").strip()
+    hostname = (data.get("hostname") or "").strip().lower()
     if not hostname:
         return error("hostname is required", 400)
 
@@ -148,7 +148,7 @@ def create_event():
     try:
         # ── Resolve computer ──────────────────────────────────────────────
         computer = db.execute(
-            "SELECT id, hostname FROM computers WHERE hostname = ?", (hostname,)
+            "SELECT id, hostname FROM computers WHERE LOWER(hostname) = ?", (hostname,)
         ).fetchone()
         if computer is None:
             return error(

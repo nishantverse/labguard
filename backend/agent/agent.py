@@ -57,7 +57,7 @@ def _load_config() -> dict:
 
 
 def _get_hostname() -> str:
-    return socket.gethostname()
+    return socket.gethostname().strip().lower()
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
@@ -104,6 +104,10 @@ def main() -> None:
     # Change the path and patterns below to suit your lab's policy.
     import os as _os
     _watch_path = _os.path.expanduser("~/Downloads")
+    try:
+        _os.makedirs(_watch_path, exist_ok=True)
+    except Exception:
+        pass
     folder_monitor = FolderMonitor()
     folder_monitor.on_file_detected(lambda info: _on_file_detected(info, config, hostname))
     folder_monitor.start(

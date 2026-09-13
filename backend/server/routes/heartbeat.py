@@ -27,7 +27,7 @@ def heartbeat():
     if not data:
         return error("Request body must be JSON", 400)
 
-    hostname = (data.get("hostname") or "").strip()
+    hostname = (data.get("hostname") or "").strip().lower()
     if not hostname:
         return error("hostname is required", 400)
 
@@ -36,7 +36,7 @@ def heartbeat():
     db = get_db()
     try:
         computer = db.execute(
-            "SELECT id FROM computers WHERE hostname = ?", (hostname,)
+            "SELECT id FROM computers WHERE LOWER(hostname) = ?", (hostname,)
         ).fetchone()
 
         if computer:
