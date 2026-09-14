@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useWebSocket } from '../hooks/useWebSocket';
-import { Shield, LayoutDashboard, Monitor, Activity, Bell, Settings, X, Zap } from 'lucide-react';
+import { Shield, LayoutDashboard, Monitor, Activity, Bell, Settings, X, Zap, ExternalLink } from 'lucide-react';
 
 export default function Sidebar({ isOpen, onClose }) {
   const { connected } = useWebSocket();
@@ -166,6 +166,19 @@ export default function Sidebar({ isOpen, onClose }) {
               {connected && <Zap size={11} className="text-emerald-400" />}
               <span className="text-[10px] font-mono text-gray-500">v1.1</span>
             </div>
+          </div>
+          <div className="mt-3 flex items-center justify-between px-1 text-[14px]">
+            <span className="text-gray-500">Made by <a href="https://nishantverse.vercel.app" target="_blank" rel="noreferrer" className="text-violet-400 underline font-light hover:text-violet-300 transition-colors ">Nishant Patil</a></span>
+            <a
+              href="https://github.com/nishantverse"
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1 text-gray-500 hover:text-gray-200 transition-colors underline"
+              aria-label="Visit Nishant Patil on GitHub"
+            >
+              <span>GitHub</span>
+              <ExternalLink size={12} />
+            </a>
           </div>
         </div>
       </aside>
